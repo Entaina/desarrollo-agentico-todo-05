@@ -5,13 +5,13 @@ La especificación de un cambio de código. Todo cambio de código parte de un p
 ## Información
 
 - Alcance, pasos, archivos y tests, como los producen las skills `feature`, `bug` y `chore`.
-- Revisiones: el plan inicial y una por cada petición de cambio. Las anteriores se conservan, y cada revisión cita las peticiones que recoge.
+- Revisiones: el plan inicial y una por cada petición de cambio. Las anteriores se conservan, y cada revisión cita las peticiones que recoge y su origen: «revisión del humano» o «rechazo de validación, intento k», con los defectos de cada dimensión.
 
 ## Contrato
 
 - **Entradas:**
   - `specification`: lo que hay que construir, y si está clara.
-  - `change_request`: peticiones de cambio sobre el plan vigente.
+  - `change_request`: peticiones de cambio sobre el plan vigente: las del humano al revisar la propuesta y los rechazos de la validación.
   - `environment`: dónde se trabaja, y si está listo.
 - **Expone:** `ready`, `question_raised`.
 

@@ -24,7 +24,7 @@ Sus sentries solo miran su propio estado y sus entradas. A qué artefacto concre
 2. Al abrirse, sus milestones dejan de estar alcanzados: el stage existe para volver a conseguirlos.
 3. Un stage se cierra al alcanzar uno de sus milestones.
 4. Un milestone alcanzado se invalida cuando se cumple su condición de invalidación. La invalidación se propaga: lo que dependía de él, en el mismo artefacto o a través de las asociaciones, se reevalúa.
-5. Si el servicio de un stage falla, el stage se cierra alcanzando `failed`, un milestone que tienen todos los artefactos.
+5. Si el servicio de un stage falla, el stage se cierra alcanzando `failed`, un milestone que tienen todos los artefactos. También se cierra con `failed` cuando el artefacto agota un tope que fija su definición, como los rechazos seguidos de la Verification.
 6. Algunos milestones son terminales: `failed` y los que cada artefacto marque como tales. Mientras un artefacto del caso tenga uno alcanzado, no se abre ningún stage del caso. `failed` se invalida cuando el humano devuelve el turno (ver [control](control.md)): es un reintento.
 
 ## Business step

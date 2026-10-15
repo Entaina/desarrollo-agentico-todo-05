@@ -10,7 +10,7 @@ La petición de trabajo. Es el artefacto raíz del caso.
 
 ## Contrato
 
-- **Entradas:** `questions`, dudas funcionales que plantean otros artefactos.
+- **Entradas:** `questions`, dudas funcionales que plantean otros artefactos al planificar el cambio o su verificación.
 - **Expone:** `clarified`, y su identidad, tipo y título.
 
 ## Ciclo de vida
