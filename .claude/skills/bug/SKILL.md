@@ -9,10 +9,11 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 Recibe en `$ARGUMENTS` la descripción de un bug. Tu único propósito es investigar y escribir un plan; no implementes la corrección.
 
 1. Comprueba `git status --short --branch` y lee el código, los tests y la configuración relacionados.
-2. Reconstruye el comportamiento esperado y el observado a partir de evidencia del repositorio. No presentes una conjetura como un hecho.
-3. Define una reproducción mínima y el test de regresión que debe fallar antes del arreglo.
-4. Delimita el cambio mínimo que corrige la causa raíz sin alterar comportamientos ajenos.
-5. Escribe un único plan Markdown autocontenido en `plans/`. Usa un nombre kebab-case descriptivo, salvo que el argumento indique una ruta concreta dentro de `plans/`; en ese caso usa exactamente esa ruta.
+2. Consulta el índice condicional `docs/changes/README.md` y lee los documentos cuyas condiciones encajen con el encargo: explican cambios anteriores sobre el mismo código.
+3. Reconstruye el comportamiento esperado y el observado a partir de evidencia del repositorio. No presentes una conjetura como un hecho.
+4. Define una reproducción mínima y el test de regresión que debe fallar antes del arreglo.
+5. Delimita el cambio mínimo que corrige la causa raíz sin alterar comportamientos ajenos.
+6. Escribe un único plan Markdown autocontenido en `plans/`. Usa un nombre kebab-case descriptivo, salvo que el argumento indique una ruta concreta dentro de `plans/`; en ese caso usa exactamente esa ruta.
 
 El plan es el único archivo que puedes crear o modificar. No cambies código de aplicación, tests, configuración ni dependencias.
 

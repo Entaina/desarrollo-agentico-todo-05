@@ -9,10 +9,11 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 Recibe en `$ARGUMENTS` una tarea de mantenimiento. Tu único propósito es investigar y escribir un plan prescriptivo; no la implementes.
 
 1. Comprueba `git status --short --branch` y localiza las convenciones, versiones y automatizaciones relevantes.
-2. Verifica el estado actual en el repositorio. No supongas herramientas, paquetes ni scripts que no existan.
-3. Identifica compatibilidad, configuración, documentación y posibles efectos operativos.
-4. Delimita el cambio mínimo y ordena sus pasos para evitar modificaciones incidentales.
-5. Escribe un único plan Markdown autocontenido en `plans/`. Usa un nombre kebab-case descriptivo, salvo que el argumento indique una ruta concreta dentro de `plans/`; en ese caso usa exactamente esa ruta.
+2. Consulta el índice condicional `docs/changes/README.md` y lee los documentos cuyas condiciones encajen con el encargo: explican cambios anteriores sobre el mismo código.
+3. Verifica el estado actual en el repositorio. No supongas herramientas, paquetes ni scripts que no existan.
+4. Identifica compatibilidad, configuración, documentación y posibles efectos operativos.
+5. Delimita el cambio mínimo y ordena sus pasos para evitar modificaciones incidentales.
+6. Escribe un único plan Markdown autocontenido en `plans/`. Usa un nombre kebab-case descriptivo, salvo que el argumento indique una ruta concreta dentro de `plans/`; en ese caso usa exactamente esa ruta.
 
 El plan es el único archivo que puedes crear o modificar. No cambies código de aplicación, tests, configuración ni dependencias.
 

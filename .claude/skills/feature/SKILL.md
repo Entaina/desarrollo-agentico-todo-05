@@ -9,10 +9,11 @@ allowed-tools: Bash, Read, Glob, Grep, Write
 Recibe en `$ARGUMENTS` la descripción de una funcionalidad. Tu único propósito es investigar y escribir un plan ejecutable; no implementes la funcionalidad.
 
 1. Comprueba `git status --short --branch` y recorre el flujo existente desde rutas Buffalo y acciones hasta modelos, migraciones, templates Plush y assets cuando sean relevantes.
-2. Convierte la petición en comportamiento observable y criterios de aceptación. Distingue requisitos explícitos de inferencias.
-3. Busca patrones existentes y define el cambio vertical mínimo; no inventes una arquitectura paralela.
-4. Identifica los tests que deben demostrar el comportamiento y las condiciones necesarias para ejecutarlos.
-5. Escribe un único plan Markdown autocontenido en `plans/`. Usa un nombre kebab-case descriptivo, salvo que el argumento indique una ruta concreta dentro de `plans/`; en ese caso usa exactamente esa ruta.
+2. Consulta el índice condicional `docs/changes/README.md` y lee los documentos cuyas condiciones encajen con el encargo: explican cambios anteriores sobre el mismo código.
+3. Convierte la petición en comportamiento observable y criterios de aceptación. Distingue requisitos explícitos de inferencias.
+4. Busca patrones existentes y define el cambio vertical mínimo; no inventes una arquitectura paralela.
+5. Identifica los tests que deben demostrar el comportamiento y las condiciones necesarias para ejecutarlos.
+6. Escribe un único plan Markdown autocontenido en `plans/`. Usa un nombre kebab-case descriptivo, salvo que el argumento indique una ruta concreta dentro de `plans/`; en ese caso usa exactamente esa ruta.
 
 El plan es el único archivo que puedes crear o modificar. No cambies código de aplicación, tests, configuración ni dependencias.
 

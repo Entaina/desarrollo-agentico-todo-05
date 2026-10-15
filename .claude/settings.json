@@ -23,14 +23,24 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
+      "Bash(git merge-base *)",
       "Bash(rm plans/*)",
+      "Bash(mkdir -p .adw/*)",
+      "Bash(tee .adw/*)",
       "Bash(bash .claude/skills/adw/scripts/log.sh case *)",
+      "Bash(bash .claude/skills/adw/scripts/tree.sh)",
+      "Bash(bash .claude/skills/check/scripts/check.sh)",
+      "Bash(bash .claude/skills/check/scripts/check.sh *)",
+      "Bash(bash .claude/skills/verify/scripts/red-green.sh *)",
       "Bash(docker info *)",
       "Bash(docker ps *)",
       "Bash(docker compose *)",
+      "Bash(docker build *)",
       "Bash(go *)",
+      "Bash(GO_ENV=test go *)",
       "Bash(gofmt *)",
       "Bash(soda *)",
+      "Bash(playwright-cli *)",
       "Bash(buffalo *)",
       "Bash(which *)",
       "Bash(lsof *)",
@@ -40,6 +50,7 @@
       "Bash(curl http://localhost:3000/*)",
       "Bash(curl -s http://localhost:3000/*)",
       "Bash(curl -fsS http://localhost:3000/*)",
+      "Bash(curl -sS -i http://localhost:3000/*)",
       "Bash(wget -q --spider http://localhost:3000/*)"
     ],
     "deny": [
@@ -59,7 +70,10 @@
       "Bash(gh repo delete *)",
       "Bash(docker compose down *)",
       "Bash(docker compose down)",
-      "Bash(docker volume rm *)"
+      "Bash(docker volume rm *)",
+      "Bash(playwright-cli run-code *)",
+      "Bash(playwright-cli * run-code *)",
+      "Bash(tee *..*)"
     ]
   },
   "hooks": {
