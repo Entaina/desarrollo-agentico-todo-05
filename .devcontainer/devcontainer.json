@@ -3,12 +3,17 @@
   "image": "mcr.microsoft.com/devcontainers/go:1.26-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
     "ghcr.io/devcontainers/features/sshd:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
   "forwardPorts": [3000],
-  "postCreateCommand": "go mod download && go install github.com/gobuffalo/cli/cmd/buffalo@v0.18.14",
+  "postCreateCommand": "go mod download && go install github.com/gobuffalo/cli/cmd/buffalo@v0.18.14 && go install github.com/gobuffalo/pop/v6/soda@v6.4.1 && npm install -g @playwright/cli@latest && playwright-cli install-browser chromium --with-deps",
   "postStartCommand": "docker compose up -d db",
   "remoteUser": "vscode"
 }

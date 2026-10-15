@@ -5,3 +5,7 @@ Dockerfile
 compose.yaml
 .devcontainer
 .github
+.adw
+.playwright
+.playwright-cli
+.claude
