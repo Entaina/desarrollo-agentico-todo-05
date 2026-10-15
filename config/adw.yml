@@ -3,6 +3,10 @@ repo: ""
 label: adw
 interval_seconds: 20
 
+# Rechazos seguidos de la verificación tras los que el caso se da por fallido
+# y se cede el turno al humano. 1 desactiva el bucle de corrección.
+max_rejections: 3
+
 # Invoca el workflow que hayas creado. {{payload}} recibe la foto JSON de cada
 # issue cuyo turno es del agente.
 prompt: >-

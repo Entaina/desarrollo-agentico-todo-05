@@ -325,6 +325,9 @@ func TestTriggerInvalidConfigurationDoesNotLaunch(t *testing.T) {
 		{name: "missing-label", body: strings.Replace(defaultConfig, "label: adw", "label: ''", 1)},
 		{name: "zero-interval", body: strings.Replace(defaultConfig, "interval_seconds: 20", "interval_seconds: 0", 1)},
 		{name: "negative-interval", body: strings.Replace(defaultConfig, "interval_seconds: 20", "interval_seconds: -1", 1)},
+		{name: "zero-max-rejections", body: defaultConfig + "max_rejections: 0\n"},
+		{name: "negative-max-rejections", body: defaultConfig + "max_rejections: -2\n"},
+		{name: "non-integer-max-rejections", body: defaultConfig + "max_rejections: tres\n"},
 		{name: "missing-payload-marker", body: strings.Replace(defaultConfig, "{{payload}}", "", 1)},
 		{name: "old-issue-marker", body: strings.Replace(defaultConfig, "{{payload}}", "{{issue_url}}", 1)},
 		{name: "malformed-yaml", body: "repo: [\n"},
@@ -339,6 +342,33 @@ func TestTriggerInvalidConfigurationDoesNotLaunch(t *testing.T) {
 			output, events, ghArgs, err := runTrigger(t, list(newSnapshot), tc.body, nil, tc.args...)
 			if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 2 || events != "" || ghArgs != "" {
 				t.Fatalf("invalid configuration must stop before querying: err=%v, events=%q, args=%q, output=%s", err, events, ghArgs, output)
+			}
+		})
+	}
+}
+
+func TestTriggerMaxRejections(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want int
+	}{
+		{name: "default", body: defaultConfig, want: 3},
+		{name: "loop-disabled", body: defaultConfig + "max_rejections: 1\n", want: 1},
+		{name: "configured", body: defaultConfig + "max_rejections: 5\n", want: 5},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "adw.yml")
+			if err := os.WriteFile(path, []byte(tc.body), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := readConfig(path)
+			if err != nil {
+				t.Fatalf("max_rejections must accept integers from 1 and default to 3: %v", err)
+			}
+			if cfg.MaxRejections != tc.want {
+				t.Fatalf("want max_rejections %d, got %d", tc.want, cfg.MaxRejections)
 			}
 		})
 	}

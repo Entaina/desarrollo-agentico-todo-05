@@ -4,17 +4,41 @@ Este lanzador consulta las issues abiertas con la etiqueta configurada, de más 
 
 ## Preparación
 
-Necesitas Go (la versión del proyecto), Bash, Git, GitHub CLI (`gh`) y Claude Code (`claude`) v2.1.259+ en `PATH`, autenticados, y el checkout/entorno del proyecto ya disponibles. El lanzador reutiliza la librería YAML existente.
+Necesitas Go (la versión del proyecto), Bash, Git, GitHub CLI (`gh`) 2.99 o posterior y Claude Code (`claude`) v2.1.259+ en `PATH`, autenticados, y el checkout/entorno del proyecto ya disponibles. El lanzador reutiliza la librería YAML existente.
+
+La verificación necesita además:
+
+- Node.js 20 o posterior y [`playwright-cli`](https://playwright.dev/agent-cli/introduction) con su navegador: `npm install -g @playwright/cli@latest` y `playwright-cli install-browser chromium`. El navegador no se descarga solo en el primer uso. La configuración del proyecto está en `.playwright/cli.config.json` (Chromium sin ventana y viewport fijo de 1280x800) y la skill de la CLI, en `.claude/skills/playwright-cli/`; si actualizas la CLI, vuelve a instalar la skill con `playwright-cli install --skills`.
+- `soda` para las migraciones de test (`go install github.com/gobuffalo/pop/v6/soda@v6.4.1`), en `PATH` o en `$(go env GOPATH)/bin`.
+- PostgreSQL en el puerto 5432, el del entorno de desarrollo (`env:start`), y Docker.
+
+El dev container (`.devcontainer/`) ya instala todo esto.
 
 Antes de arrancar el trigger, abre Claude Code una vez de forma interactiva en el checkout y acepta el diálogo de confianza. Si el directorio no es de confianza, `claude -p` ignora los permisos de `.claude/settings.json` («this workspace has not been trusted») y la skill no podrá hacer su trabajo sin preguntar.
 
-Este starter todo-04 incluye la skill **`/adw`**, que reutiliza `/feature`, `/bug`, `/chore` y `/implement`. La skill no tiene el flujo escrito: su especificación describe artefactos con sus ciclos de vida, servicios y asociaciones, y ante cada evento compone el workflow que necesita ese caso. El trigger solo decide cuándo invocarla.
+Este starter todo-05 incluye la skill **`/adw`**, que reutiliza `/feature`, `/bug`, `/chore` y `/implement` para planificar e implementar, y `check`, `verify`, `judge` y `document` para verificar y documentar. La skill no tiene el flujo escrito: su especificación describe artefactos con sus ciclos de vida, servicios y asociaciones, y ante cada evento compone el workflow que necesita ese caso. El trigger solo decide cuándo invocarla.
 
-El humano está **fuera del chat** e interviene solo en GitHub, en dos puntos de control: responder las preguntas del agente en la issue, si no está clara, y revisar el PR. Si el humano comenta el PR, el agente atiende la revisión en el mismo PR; el flujo termina cuando el humano lo integra o lo cierra. Si algo falla, el agente lo cuenta en la issue y se detiene; no hay bucles de corrección.
+El humano está **fuera del chat** e interviene solo en GitHub, en dos puntos de control: responder las preguntas del agente en la issue, si no está clara, y revisar el PR. Si el humano comenta el PR, el agente atiende la revisión en el mismo PR; el flujo termina cuando el humano lo integra o lo cierra. Antes de publicar, el agente verifica el cambio con evidencias y documenta el caso. Si la verificación lo rechaza, lo corrige solo hasta un tope de rechazos; si lo alcanza, o si algo falla, lo cuenta en la issue y se detiene.
 
 La issue también lleva el control del caso. La etiqueta `adw` la admite en el sistema; la asignación indica qué cuenta la gestiona, y una issue asignada a otra persona no la toca ningún otro sistema; `adw:waiting-for-human` indica que es tu turno, y se devuelve quitándola. Ver [control](../.claude/skills/adw/references/control.md).
 
-El estado de cada caso es visible en la issue mediante etiquetas: `stage:<stage>` mientras un stage está abierto y `<artifact>:<milestone>` por cada milestone alcanzado (por ejemplo, `issue:clarified` o `plan:ready`). La skill crea las que falten. Los ciclos de vida están en [los artefactos](../.claude/skills/adw/references/artifacts/) y el modelo que los rige, en [GSM](../.claude/skills/adw/references/gsm.md).
+El estado de cada caso es visible en la issue mediante etiquetas: `stage:<stage>` mientras un stage está abierto y `<artifact>:<milestone>` por cada milestone alcanzado (por ejemplo, `issue:clarified`, `plan:ready` o `verification:validated`). La skill crea las que falten. Los ciclos de vida están en [los artefactos](../.claude/skills/adw/references/artifacts/) y el modelo que los rige, en [GSM](../.claude/skills/adw/references/gsm.md).
+
+## Verificación y evidencias
+
+El camino de una issue clara hasta el PR es: planificar la verificación y el cambio, implementar, validar, documentar y publicar.
+
+- **Plan de verificación.** En cuanto la issue está clara, y sin mirar el plan de implementación, el agente convierte sus criterios en afirmaciones refutables: qué se comprueba, en qué dimensión, con qué método, qué resultado se espera, qué lo refutaría y qué evidencia quedará. Lo publica en la issue (`<!-- adw:verification-plan -->`). Si al hacerlo encuentra un caso que la issue no resuelve, pregunta antes de implementar.
+- **Validación.** Tres verificadores independientes comprueban el cambio en paralelo: **estructural** (gates y convenciones de `docs/conventions.md`), **funcional** (tests, test nuevo en rojo sobre la base y en verde sobre el cambio, HTTP, valores medidos en el DOM con capturas y vídeos, base de datos) y **fidelidad** (todo lo pedido y solo lo pedido). Lo que se puede automatizar se automatiza; lo demás lo juzga un LLM con una rúbrica fijada de antemano, y cada hallazgo grave pasa por un intento de refutación antes de contar.
+- **Acta.** Cada intento deja un acta en la issue (`<!-- adw:evidence -->`) con el veredicto de cada afirmación, sus evidencias y cómo reproducirlas. Las capturas y los vídeos se suben con `gh … --attach` y se ven en el propio comentario. Los ficheros quedan en `.adw/evidence/issue-N/<n>/`, ignorado por git.
+- **Documento.** Con el cambio validado, el agente escribe `docs/changes/<tipo>-<N>-<slug>.md` y su entrada en el índice condicional `docs/changes/README.md`, que viajan en el PR. Las skills de planificación consultan ese índice.
+- **PR.** Su descripción incluye `## Evidencia`, con el resumen del acta, el commit en que se validó y las capturas, y `## Para el humano`, con la deuda, los juicios dudosos y lo que solo puede decidir una persona.
+
+## Bucle de corrección
+
+Si la validación rechaza el cambio, el rechazo vuelve al plan como una petición de cambio, con los defectos de todas las dimensiones, y el agente replanifica, implementa y valida de nuevo, sin cederte el turno. El plan de verificación no cambia por un rechazo: lo que se pidió sigue siendo lo que se pidió. Solo tú puedes cambiarlo, con una petición en el PR o una aclaración en la issue.
+
+El bucle admite `max_rejections` rechazos seguidos sin intervención humana (ver [Configurar](#configurar)). Al alcanzarlo, la issue queda con `verification:failed` y el turno pasa a ti, con el resumen de los rechazos y sus actas. El trabajo sin validar no se pierde: se registra en la rama del caso y queda en un PR en borrador. Cuando devuelves el turno, el contador vuelve a cero y el último rechazo entra al plan junto con lo que hayas escrito.
 
 ## Cuándo lanza la skill
 
@@ -35,6 +59,7 @@ Edita **`config/adw.yml`**. No necesitas editar el código ni establecer variabl
 repo: ""
 label: adw
 interval_seconds: 20
+max_rejections: 3
 prompt: >-
   /adw {{payload}}
 ```
@@ -42,6 +67,7 @@ prompt: >-
 - `repo`: opcional. Vacío u omitido, la consulta no pasa `--repo` y `gh` usa su contexto de repositorio habitual. Con `OWNER/REPO`, se consulta ese repositorio explícitamente.
 - `label`: etiqueta que admite las issues en el sistema. Debe coincidir con la que usa la skill (`adw`).
 - `interval_seconds`: espera entre consultas, una vez terminada la lista anterior.
+- `max_rejections`: rechazos seguidos de la verificación, sin intervención humana, tras los que el caso se da por fallido y se te cede el turno. Entero mayor o igual que 1; si se omite, 3. Con 3 hay dos correcciones automáticas; con 1 no hay ninguna. Lo lee la skill directamente de este fichero, así que vale igual cuando la lanza el trigger que cuando escribes `/adw quiero hacer la issue #12`. Cada caso usa el valor de su rama, que lo hereda de la rama por defecto al crearse: para cambiarlo en un caso en curso, cámbialo en su rama. El trigger solo lo valida al arrancar.
 - `prompt`: texto que recibe Claude. Puede invocar tu propia skill o comando; `{{payload}}` se sustituye por la foto JSON de la issue (`url`, `number`, `title`, `labels`, `assignees` y `updatedAt`). No se evalúa como código de shell.
 
 En forks o con varios remotos, comprueba qué repositorio resolverá `gh` con `gh repo view --json nameWithOwner --jq .nameWithOwner`; no presupongas que será tu fork. El trigger no cambia el repositorio predeterminado ni la configuración Git. Si `gh` no puede resolverlo o falla la consulta, termina sin lanzar Claude.
@@ -66,7 +92,7 @@ También puedes ejecutar `go run ./adws` directamente. El script sitúa la ejecu
 
 Cada invocación equivale a `claude -p "<prompt configurado con la foto de la issue>" --permission-prompts none`. Este flag elimina herramientas que necesitan respuesta humana, como `AskUserQuestion`, y deniega solicitudes no autorizadas en vez de esperar; **no amplía permisos ni los desactiva**. Requiere Claude Code v2.1.259+. Confirma que el modo del cliente carga las skills/comandos del proyecto; no uses uno que los oculte.
 
-La skill continúa automáticamente hasta abrir el PR. Si la issue no está clara, deja sus preguntas en ella (`issue:info-requested`) y te cede el turno. Cuando respondes y quitas `adw:waiting-for-human`, la siguiente consulta lanza la skill y retoma el trabajo. Con el PR publicado ocurre lo mismo con tus comentarios de revisión. Los errores se reportan en la issue y dejan la etiqueta `<artifact>:failed`; quitar `adw:waiting-for-human` es reintentar. Detén el sondeo con `Ctrl+C`; si `gh`, `git` o `claude` devuelven error, el lanzador termina.
+La skill continúa automáticamente hasta abrir el PR, con el cambio validado y documentado. Si la issue no está clara, deja sus preguntas en ella (`issue:info-requested`) y te cede el turno. Cuando respondes y quitas `adw:waiting-for-human`, la siguiente consulta lanza la skill y retoma el trabajo. Con el PR publicado ocurre lo mismo con tus comentarios de revisión: el agente amplía el plan de verificación con lo que pides, revalida y actualiza el documento antes de volver a publicar. Los errores y el tope de rechazos se reportan en la issue y dejan la etiqueta `<artifact>:failed`; quitar `adw:waiting-for-human` es reintentar. Detén el sondeo con `Ctrl+C`; si `gh`, `git` o `claude` devuelven error, el lanzador termina.
 
 ## Ver qué hace el agente
 
@@ -86,6 +112,10 @@ La sesión escribe en `.adw/logs/unknown-<n>/` hasta que la skill sabe a qué is
 - No interpreta el resultado de Claude. Código cero no demuestra que haya PR: el estado real está en las etiquetas de la issue.
 - `--permission-prompts none` impide esperar o interrogar al humano, pero las operaciones siguen necesitando permisos previamente configurados.
 - Si Claude no arranca o muere a mitad, **no hay garantía de comentario** y la issue puede quedarse con una etiqueta `stage:*`, que el trigger respeta como candado. Para reintentarla, quita esa etiqueta.
+- Las evidencias completas viven en la máquina que validó (`.adw/evidence/`). En GitHub queda lo que publica el acta: capturas y vídeos adjuntos y extractos de texto.
+- `--attach` solo funciona en github.com y GitHub Enterprise Cloud y requiere permiso de push. Admite imágenes de hasta 10 MB y vídeos de hasta 10 MB en el plan gratuito o 100 MB en los de pago: los vídeos de la verificación son cortos.
+- `docker build` es informativo en la verificación local; en la CI sí bloquea. El agente no vigila la CI del PR.
+- Un acta vale para el commit en que se validó. Si alguien sube commits a la rama del PR fuera del flujo de revisión, la evidencia deja de corresponder a la cabeza del PR.
 
 ## Comprobar el lanzador
 
@@ -93,4 +123,4 @@ La sesión escribe en `.adw/logs/unknown-<n>/` hasta que la skill sabe a qué is
 go test -p 1 ./adws
 ```
 
-Los tests usan `gh`, `git` y `claude` simulados: no consultan GitHub ni ejecutan un agente real. Comprueban la configuración YAML, repo opcional o explícito, paradas ante errores de `gh`, la consulta, el filtro por turno del agente, la parada con el checkout sucio, el orden secuencial, el flag sin prompts de permiso, la sustitución literal del prompt, las paradas por error y el sondeo sin memoria. No sustituyen un ensayo completo del workflow hasta el PR.
+Los tests usan `gh`, `git` y `claude` simulados: no consultan GitHub ni ejecutan un agente real. Comprueban la configuración YAML, `max_rejections` (3 por defecto, valores válidos e inválidos), repo opcional o explícito, paradas ante errores de `gh`, la consulta, el filtro por turno del agente, la parada con el checkout sucio, el orden secuencial, el flag sin prompts de permiso, la sustitución literal del prompt, las paradas por error y el sondeo sin memoria. No sustituyen un ensayo completo del workflow hasta el PR.

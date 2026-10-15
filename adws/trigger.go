@@ -21,10 +21,16 @@ const (
 	stagePrefix  = "stage:"
 )
 
+// defaultMaxRejections es el tope de rechazos seguidos de la verificación si config/adw.yml no lo fija.
+const defaultMaxRejections = 3
+
+// config refleja config/adw.yml. MaxRejections no lo usa el trigger, sino la skill, que lo lee
+// del mismo fichero; está aquí para que KnownFields(true) lo admita y para validarlo al arrancar.
 type config struct {
 	Repo            string `yaml:"repo"`
 	Label           string `yaml:"label"`
 	IntervalSeconds int    `yaml:"interval_seconds"`
+	MaxRejections   int    `yaml:"max_rejections"`
 	Prompt          string `yaml:"prompt"`
 }
 
@@ -39,7 +45,8 @@ type issue struct {
 }
 
 func readConfig(path string) (config, error) {
-	var cfg config
+	// El decodificador solo cambia los campos presentes: si se omite, queda el valor por defecto.
+	cfg := config{MaxRejections: defaultMaxRejections}
 	file, err := os.Open(path)
 	if err != nil {
 		return cfg, err
@@ -56,6 +63,9 @@ func readConfig(path string) (config, error) {
 	}
 	if strings.TrimSpace(cfg.Label) == "" || cfg.IntervalSeconds < 1 {
 		return cfg, fmt.Errorf("label no puede estar vacío e interval_seconds debe ser positivo")
+	}
+	if cfg.MaxRejections < 1 {
+		return cfg, fmt.Errorf("max_rejections debe ser mayor o igual que 1")
 	}
 	if !strings.Contains(cfg.Prompt, "{{payload}}") {
 		return cfg, fmt.Errorf("prompt debe contener {{payload}}")
