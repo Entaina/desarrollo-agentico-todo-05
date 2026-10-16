@@ -62,16 +62,22 @@ El payload es una foto del momento en que ocurrió el evento y puede estar obsol
 1. Si el caso está libre, reclámalo. Si al reclamarlo aparece otro dueño, renuncia y termina.
 2. Proyecta como abierto el primer stage cuyo guard se cumple, o los que vayas a lanzar en paralelo. Es el candado que impide otra ejecución sobre el mismo caso.
 3. Prevé la cadena: qué stages se irán abriendo con los milestones que se alcancen, qué servicio ejecuta cada uno, quién lo realiza y en qué quiescencia quedará el caso.
-4. Publica el workflow junto al artefacto donde ha ocurrido el evento:
+4. Publica el workflow junto al artefacto donde ha ocurrido el evento. A la vista:
 
 ```markdown
 ### ADW · workflow para este evento
-Evento: <qué ha pasado y quién> (<enlace>)
+**Evento:** <qué ha pasado y quién, en una línea> (<enlace>)
+**Siguiente:** <la cadena prevista en una línea, como «aclarar → planificar la verificación ‖ preparar el entorno ‖ planificar → implementar → validar → documentar → publicar»>. Intento <k> de <max_rejections>.
+**Se espera llegar a:** <aclaración en la issue | revisión de la propuesta | fallo tras agotar los intentos>
+```
+
+   Y plegado debajo, con el resumen «Pasos, servicios y modelos · <n> pasos»:
+
+```markdown
 Estado al empezar: <milestones alcanzados>
 1. <Artifact>.<Stage> · <servicio> · <quién lo realiza y con qué modelo> · <milestone esperado>
 2. …
 Bucle de corrección: intento <k> de <max_rejections>
-Quiescencia prevista: <aclaración en la issue | revisión de la propuesta | fallo tras agotar los intentos>
 ```
 
 ## 4. Ejecuta y recompón
@@ -101,6 +107,13 @@ Quiescencia prevista: <aclaración en la issue | revisión de la propuesta | fal
 - Espera a los tres verificadores antes de decidir. Un rechazo lleva al plan los defectos de todas las dimensiones en una sola revisión.
 - Tras un rechazo, la cadena vuelve a `Planning` sin ceder el turno. Si el rechazo alcanza `max_rejections`, `Validation` se cierra con `failed`: ejecuta `report_failure` y cede el turno. Cuando el humano lo devuelva, el contador vuelve a cero y el último rechazo llega al plan con lo que haya escrito.
 - Si un método previsto no puede ejecutarse (no arranca el navegador, no hay base de datos de test), es un fallo del servicio, no un rechazo.
+
+### Lo que publicas
+
+- Todo lo que publicas tiene dos lectores. Arriba, a la vista y en lo que cabe en una pantalla, lo que necesita el humano: qué es, su resultado y qué se espera de él. Debajo, plegado, el detalle completo para los agentes y la auditoría. Nunca se pliega lo que pide algo al humano ni lo que explica un rechazo o un fallo.
+- La evidencia se enseña por criterio de la petición, con la prueba para el revisor que fijó el plan de verificación y una frase con lo medido, no por dimensión ni por afirmación. En la propuesta, la prueba va a la vista; en el acta, enlazada.
+- Lo superado (una revisión anterior, un acta anterior, el workflow y los avisos de un evento ya resuelto) se oculta al publicar lo que lo sustituye, sin borrarlo: sigue siendo el historial del caso, y el estado depende de él.
+- El adaptador dice cómo se pliega, cómo se oculta y cómo se leen los comentarios ocultos.
 
 ## Límites
 

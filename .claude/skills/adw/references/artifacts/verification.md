@@ -4,8 +4,8 @@ La prueba de que el Change cumple la especificación. Validar es decidir si el c
 
 ## Información
 
-- El plan de verificación, por revisión: afirmaciones refutables, cada una con su dimensión, su método, su procedimiento, el resultado esperado, la condición de refutación, la evidencia prevista y si es bloqueante. Lo describe [plan_verification](../services/plan_verification.md). Las revisiones anteriores se conservan.
-- Un acta por intento: el veredicto de cada afirmación y de cada dimensión, sus evidencias, la regla de decisión aplicada y el cambio validado.
+- El plan de verificación, por revisión: afirmaciones refutables, cada una con su dimensión, su método, su procedimiento, el resultado esperado, la condición de refutación, la evidencia prevista y si es bloqueante, y, para cada criterio y petición, su prueba para el revisor. Lo describe [plan_verification](../services/plan_verification.md). Las revisiones anteriores se conservan.
+- Un acta por intento: el veredicto de cada afirmación, de cada dimensión y de cada criterio, con su prueba para el revisor, sus evidencias, la regla de decisión aplicada y el cambio validado.
 - Los ficheros de evidencia de cada intento.
 - Los rechazos seguidos sin intervención humana.
 

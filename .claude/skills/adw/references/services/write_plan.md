@@ -20,7 +20,7 @@ skills: [feature, bug, chore]
 3. Si encuentras una duda funcional que la especificación no resuelve, no preguntes: devuélvela como resultado.
 4. Comprueba que el plan existe y que cubre la especificación y las peticiones.
 5. Si es una revisión, encabeza el plan con qué cambia respecto a la revisión anterior y qué peticiones recoge, citando su origen: «revisión del humano» o «rechazo de validación, intento k», con los defectos de cada dimensión.
-6. Publica el plan para informar, no para que lo aprueben.
+6. Publica el plan para informar, no para que lo aprueben. A la vista, lo que recoge, qué cambia respecto a la revisión anterior, el enfoque, los ficheros que toca y los títulos de los pasos; plegado, el plan completo.
 
 ## Resultado
 

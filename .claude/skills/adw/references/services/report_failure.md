@@ -14,7 +14,7 @@ Lo invoca el motor cuando el servicio de un stage falla o el stage agota su tope
 
 ## Qué hace
 
-Comunica en la petición de trabajo qué stage ha fallado, por qué y cómo reintentar. No intentes arreglarlo: decidir qué hacer le corresponde al humano.
+Comunica en la petición de trabajo, a la vista, qué stage ha fallado, por qué y cómo reintentar; plegado, el detalle del fallo. No intentes arreglarlo: decidir qué hacer le corresponde al humano.
 
 Si el stage agotó su tope, dilo, indica su valor y resume los rechazos de la racha con el enlace a cada acta. Explica que al reintentar el contador vuelve a cero y el último rechazo llega al plan junto con lo que el humano escriba antes de devolver el turno.
 

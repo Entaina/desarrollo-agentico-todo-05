@@ -49,10 +49,11 @@ description: Convierte la especificación en un plan de verificación con afirma
    | Sin comportamiento observable | Declaración con el motivo |
    | Juicio del LLM | Acta de juicio: rúbrica, cita literal, razonamiento por criterio, refutación, confianza y procedencia |
 
-7. Si es una revisión, conserva las afirmaciones anteriores y añade las de las peticiones nuevas. Si una petición o una aclaración del humano cambia lo que pedía un criterio, sustituye sus afirmaciones: la anterior se queda en el plan marcada «sustituida por Ak». Nada más justifica quitar o suavizar una afirmación: ni un rechazo ni lo que se descubra al validar.
-8. Si aparece un caso que la especificación no resuelve (por ejemplo, qué mostrar cuando no hay tareas), no lo decidas ni preguntes: devuélvelo como duda funcional.
-9. Comprueba que cada criterio y cada petición tienen al menos una afirmación, y que cada afirmación tiene resultado esperado, condición de refutación y evidencia prevista.
-10. Publica el plan para informar, no para que lo aprueben.
+7. Para cada criterio y cada petición, fija su **prueba para el revisor**: la evidencia de una de sus afirmaciones bloqueantes que lo demuestra a la vista, la que verá el humano en la propuesta. Un vídeo si es un recorrido, una captura si es un estado, dos capturas si se comparan dos estados (con y sin, antes y después) o un extracto corto de salida si no tiene interfaz. Es una evidencia más, no un sustituto: la decisión sigue saliendo del valor medido.
+8. Si es una revisión, conserva las afirmaciones anteriores y añade las de las peticiones nuevas. Si una petición o una aclaración del humano cambia lo que pedía un criterio, sustituye sus afirmaciones: la anterior se queda en el plan marcada «sustituida por Ak». Nada más justifica quitar o suavizar una afirmación: ni un rechazo ni lo que se descubra al validar.
+9. Si aparece un caso que la especificación no resuelve (por ejemplo, qué mostrar cuando no hay tareas), no lo decidas ni preguntes: devuélvelo como duda funcional.
+10. Comprueba que cada criterio y cada petición tienen al menos una afirmación y su prueba para el revisor, y que cada afirmación tiene resultado esperado, condición de refutación y evidencia prevista.
+11. Publica el plan para informar, no para que lo aprueben. A la vista, lo que recoge, qué cambia respecto a la revisión anterior, cómo se va a probar cada criterio y petición y lo que le tocará verificar al humano; plegado, el detalle de cada afirmación.
 
 ## Resultado
 
