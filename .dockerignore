@@ -9,3 +9,7 @@ compose.yaml
 .playwright
 .playwright-cli
 .claude
+node_modules
+test-results
+playwright-report
+blob-report

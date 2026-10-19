@@ -5,3 +5,8 @@ tmp/
 .adw/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+# Tests de navegador (npm ci y npx playwright test)
+node_modules/
+test-results/
+playwright-report/
+blob-report/

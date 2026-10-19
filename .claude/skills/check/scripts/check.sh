@@ -3,7 +3,8 @@
 #
 #   check.sh [--out <directorio en .adw/>] [gate ...]
 #
-# Gates, en el orden de la CI: gofmt, vet, migrate, test, build y docker. Sin gates, todos.
+# Gates, en el orden de la CI: gofmt, vet, migrate, test, build, e2e y docker. Sin gates, todos.
+# e2e son los tests de navegador (npx playwright test): arrancan la aplicación con GO_ENV=test.
 # docker es informativo: en local no cambia el veredicto; en la CI sí bloquea.
 #
 # Con --out deja en el directorio un registro por gate (gate-<gate>.txt): comando,
@@ -12,14 +13,14 @@
 # Imprime una línea por gate (gate, estado, código de salida, registro) y el veredicto:
 #   GATES: GREEN | GATES: RED (<gates>) | GATES: ERROR (<gates>)
 # Estados: pass, fail, skip (no se ejecuta porque falló un gate del que depende) y
-# error (falta una herramienta o la base de datos de test no es la de este proyecto o no
-# responde: no es culpa del cambio).
+# error (falta una herramienta, una dependencia de Node o el navegador, o la base de datos de
+# test no es la de este proyecto o no responde: no es culpa del cambio).
 #
 # Como la CI, migrate empieza con una base de test vacía: la borra, la crea y la migra.
 # Sale con 0 en verde, 1 si falla un gate bloqueante, 2 si el uso es incorrecto y 3 si hay error.
 set -o pipefail
 
-all=(gofmt vet migrate test build docker)
+all=(gofmt vet migrate test build e2e docker)
 root=$(git rev-parse --show-toplevel) || exit 2
 cd "$root" || exit 2
 
@@ -127,12 +128,16 @@ gofmt_gate() {
 }
 
 # Un fallo de conexión o de credenciales con la base de datos es del entorno, no del cambio.
+# En e2e también lo son que falte el navegador o que el puerto de la aplicación esté ocupado.
 environment_error() { # <gate> <salida>
-  [[ $1 == migrate || $1 == test ]] || return 1
+  [[ $1 == migrate || $1 == test || $1 == e2e ]] || return 1
+  if [[ $1 == e2e ]] && grep -qiE "Executable doesn't exist|is already used|Cannot find module '@playwright/test'" <<< "$2"; then
+    return 0
+  fi
   grep -qiE 'connection refused|password authentication failed|dial tcp|no such host|could not connect|server closed the connection unexpectedly|the database system is (starting up|shutting down)|is being accessed by other users|database "?todo_test"? does not exist' <<< "$2"
 }
 
-# migrate y test usan la base de datos del entorno de este proyecto: la del servicio db de
+# migrate, test y e2e usan la base de datos del entorno de este proyecto: la del servicio db de
 # compose.yaml. Si el 5432 es de otro proyecto, no se toca. Con DB_HOST, se usa ese servidor.
 test_db_problem() {
   if [[ -z ${DB_HOST:-} ]] && ! docker compose ps --status running --services 2> /dev/null | grep -qx db; then
@@ -198,6 +203,18 @@ for gate in "${gates[@]}"; do
       ;;
     build)
       run build yes "go build ./..." go build ./...
+      ;;
+    e2e)
+      if [[ $(get_status migrate) == fail || $(get_status migrate) == error ]]; then
+        set_status e2e skip
+        record e2e "-" - 0 "No se ejecuta: falló migrate."
+      elif [[ ! -d node_modules/@playwright/test ]]; then
+        fail_with e2e "Faltan las dependencias de Node de los tests de navegador: npm ci"
+      elif problem=$(test_db_problem) && [[ -n $problem ]]; then
+        fail_with e2e "$problem"
+      else
+        run e2e yes "npx playwright test" npx playwright test
+      fi
       ;;
     docker)
       if ! docker info > /dev/null 2>&1; then

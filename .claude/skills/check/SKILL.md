@@ -1,6 +1,6 @@
 ---
 name: check
-description: Ejecuta en local los gates de la CI (formato, vet, migraciones de test, tests, compilación e imagen de Docker) y devuelve un informe estructurado con un registro por gate. Úsala para validar un cambio antes de publicarlo o para obtener la evidencia de los gates. Solo comprueba e informa; no arregla nada.
+description: Ejecuta en local los gates de la CI (formato, vet, migraciones de test, tests, compilación, tests de navegador e imagen de Docker) y devuelve un informe estructurado con un registro por gate. Úsala para validar un cambio antes de publicarlo o para obtener la evidencia de los gates. Solo comprueba e informa; no arregla nada.
 allowed-tools: Read, Bash(bash .claude/skills/check/scripts/check.sh), Bash(bash .claude/skills/check/scripts/check.sh *)
 ---
 
@@ -19,14 +19,15 @@ bash .claude/skills/check/scripts/check.sh [--out <directorio en .adw/>] [gate .
 | `migrate` | `soda drop -e test`, `soda create -e test` y `soda migrate -e test`: una base de test vacía, como en la CI | Sí | Funcional |
 | `test` | `GO_ENV=test go test -p 1 ./...` | Sí | Funcional |
 | `build` | `go build ./...` | Sí | Estructural |
+| `e2e` | `npx playwright test`: los tests de navegador de `e2e/`, con la aplicación arrancada por `playwright.config.ts` con `GO_ENV=test` en el puerto 3001 | Sí | Funcional |
 | `docker` | `docker build -t todo .` | No: informativo en local; en la CI sí bloquea | Estructural |
 
 ## Uso
 
-- Sin gates, ejecuta todos en el orden de la CI. Con gates, solo esos: `check.sh gofmt vet build docker` para la dimensión estructural y `check.sh migrate test` para la funcional. No ejecutes `test` en dos procesos a la vez: comparten la base de datos de test.
-- No se para en el primer fallo, para recoger todos los defectos de una vez. Si falla `migrate`, `test` queda como `skip`.
+- Sin gates, ejecuta todos en el orden de la CI. Con gates, solo esos: `check.sh gofmt vet build docker` para la dimensión estructural y `check.sh migrate test e2e` para la funcional. No ejecutes `test` ni `e2e` en dos procesos a la vez: comparten la base de datos de test.
+- No se para en el primer fallo, para recoger todos los defectos de una vez. Si falla `migrate`, `test` y `e2e` quedan como `skip`.
 - Con `--out`, deja en ese directorio un registro por gate, `gate-<gate>.txt`, con el comando, el código de salida, la duración y la salida recortada. Es la evidencia de los gates. El directorio tiene que estar dentro de `.adw/`.
-- `migrate` y `test` necesitan el servicio `db` de este proyecto en marcha (`env:start`): si el puerto 5432 es de otro proyecto, no lo tocan y dan `error`. Con `DB_HOST`, usan ese servidor. También necesitan `soda` (`go install github.com/gobuffalo/pop/v6/soda@v6.4.1`). `docker` necesita Docker.
+- `migrate`, `test` y `e2e` necesitan el servicio `db` de este proyecto en marcha (`env:start`): si el puerto 5432 es de otro proyecto, no lo tocan y dan `error`. `e2e` necesita además las dependencias de Node (`npm ci`), Chromium (`npx playwright install chromium`) y el puerto 3001 libre; si falta algo, da `error`. Con `DB_HOST`, usan ese servidor. También necesitan `soda` (`go install github.com/gobuffalo/pop/v6/soda@v6.4.1`). `docker` necesita Docker.
 
 ## Resultado
 
@@ -45,7 +46,7 @@ GATES: RED (build)
 | `pass` | El gate pasa |
 | `fail` | El gate falla: es un defecto del cambio |
 | `skip` | No se ejecuta porque falló un gate del que depende |
-| `error` | Falta una herramienta, la base de datos de test no es la de este proyecto o falla la conexión con ella: no es un defecto del cambio, sino del entorno |
+| `error` | Falta una herramienta, una dependencia de Node o el navegador, el puerto de los tests de navegador está ocupado, o la base de datos de test no es la de este proyecto o falla la conexión con ella: no es un defecto del cambio, sino del entorno |
 
 El script sale con 0 en verde, 1 si falla un gate bloqueante, 2 si el uso es incorrecto y 3 si hay un `error` en un gate bloqueante.
 

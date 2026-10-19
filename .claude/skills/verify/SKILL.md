@@ -1,7 +1,7 @@
 ---
 name: verify
-description: Ejecuta las afirmaciones automatizadas de un plan de verificación contra el sistema real y guarda su evidencia en ficheros (tests en rojo sobre la base y en verde sobre el cambio, transcripciones HTTP, valores del DOM con capturas y vídeos de playwright-cli, consultas a la base de datos). Úsala para comprobar un cambio con evidencia reproducible. Solo verifica e informa; no arregla nada.
-allowed-tools: Read, Glob, Grep, Write, Bash(bash .claude/skills/check/scripts/check.sh *), Bash(bash .claude/skills/verify/scripts/red-green.sh *), Bash(playwright-cli -s=issue-*), Bash(curl -sS -i http://localhost:3000/*), Bash(docker compose exec -T db psql *), Bash(tee .adw/*), Bash(git diff *), Bash(git merge-base *), Bash(ls *)
+description: Ejecuta las afirmaciones automatizadas de un plan de verificación contra el sistema real y guarda su evidencia en ficheros (tests de Go y de navegador en rojo sobre la base y en verde sobre el cambio, transcripciones HTTP, valores del DOM con capturas y vídeos de playwright-cli, consultas a la base de datos). Úsala para comprobar un cambio con evidencia reproducible. Solo verifica e informa; no arregla nada.
+allowed-tools: Read, Glob, Grep, Write, Bash(bash .claude/skills/check/scripts/check.sh *), Bash(bash .claude/skills/verify/scripts/red-green.sh *), Bash(npx playwright test *), Bash(playwright-cli -s=issue-*), Bash(curl -sS -i http://localhost:3000/*), Bash(docker compose exec -T db psql *), Bash(tee .adw/*), Bash(git diff *), Bash(git merge-base *), Bash(ls *)
 ---
 
 # Verifica con evidencia
@@ -31,8 +31,8 @@ Ejecuta cada afirmación con el método que le corresponda.
 
 ### Tests
 
-- La suite completa y las migraciones, con la skill `check`: `bash .claude/skills/check/scripts/check.sh --out <dir> migrate test`. Hazlo antes que cualquier test suelto: deja la base de datos de test recién migrada.
-- Un test nuevo, en rojo sobre la base y en verde sobre el cambio, con el script de esta skill:
+- La suite completa, las migraciones y los tests de navegador, con la skill `check`: `bash .claude/skills/check/scripts/check.sh --out <dir> migrate test e2e`. Hazlo antes que cualquier test suelto: deja la base de datos de test recién migrada.
+- Un test nuevo de Go, en rojo sobre la base y en verde sobre el cambio, con el script de esta skill:
 
   ```bash
   bash .claude/skills/verify/scripts/red-green.sh --out <dir> --name 04_a4-rojo-verde \
@@ -40,6 +40,14 @@ Ejecuta cada afirmación con el método que le corresponda.
   ```
 
   Crea un worktree de la base en `.adw/base/`, copia los ficheros de test del cambio, ejecuta los tests seleccionados en los dos lados, guarda las dos ejecuciones y borra el worktree. Los tests de una suite se seleccionan como `Suite/Test`; selecciona solo los tests nuevos, porque todos tienen que fallar en la base. Si los tests usan ficheros nuevos que no son de test, como un escenario de `fixtures/`, pásalos con `--extra fixtures/tasks.toml`. Solo vale el veredicto `DISCRIMINANTE`. Si es `DISCRIMINANTE (compilación)`, la base no compila con los tests: vale como rojo solo si lo que le falta a la base es el comportamiento que pide el criterio, y lo dices. Si el cambio trae migraciones, la base se ejecuta con el esquema nuevo: tenlo en cuenta al leer su rojo.
+- Un test nuevo de navegador (`e2e/*.spec.ts`), igual, con el mismo script. Cada lado arranca su propia aplicación con `GO_ENV=test` en el puerto 3001 y ejecuta el test en Chromium: en la base, la aplicación de la base con el test del cambio. Selecciona con `--run` (es el `--grep` de Playwright) o pasando solo los ficheros nuevos:
+
+  ```bash
+  bash .claude/skills/verify/scripts/red-green.sh --out <dir> --name 05_a5-rojo-verde \
+    --base <commit base> e2e/tareas/completar-sigue-tras-recargar.spec.ts
+  ```
+
+  A la base se le copian también `playwright.config.ts` y `e2e/fixtures.ts`, que son el arnés de los tests. Si el test usa otro fichero nuevo, pásalo con `--extra`. Es la prueba para lo que depende del navegador, como el JavaScript de `public/assets/`: un test de Go no ejecuta ese código y no puede fallar sobre la base.
 
 ### HTTP
 

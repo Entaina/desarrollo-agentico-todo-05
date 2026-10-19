@@ -32,7 +32,7 @@ description: Convierte la especificación en un plan de verificación con afirma
 4. Elige el método con estas reglas: si se puede automatizar, se automatiza, y el LLM no juzga lo que un test puede decidir; lo automatizado prepara el juicio, extrayendo el material que el LLM juzga; lo que no puede decidir ni el código ni el LLM (gusto, decisiones de producto, interpretaciones de algo ambiguo) es verificación humana y va a la lista de revisión de la propuesta.
 5. Incluye siempre:
    - **Estructural:** los gates de formato, análisis y compilación, bloqueantes, y la imagen de Docker, informativa; el juicio del diff con las rúbricas de estructura de las convenciones.
-   - **Funcional:** la suite completa sin regresiones, bloqueante, y, para cada test nuevo que demuestra un criterio, su ejecución en rojo sobre la base y en verde sobre el cambio. En un bug, el test de regresión es obligatorio.
+   - **Funcional:** la suite completa sin regresiones, con los tests de navegador, bloqueante, y, para cada test nuevo que demuestra un criterio, su ejecución en rojo sobre la base y en verde sobre el cambio. En un bug, el test de regresión es obligatorio. Si el criterio depende del navegador, como el JavaScript de `public/assets/`, el test que lo demuestra es de navegador: uno de Go no ejecuta ese código y pasaría también en la base.
    - **Fidelidad:** la cobertura (cada criterio con sus afirmaciones y, si tiene comportamiento observable, un test asociado) y la contención (cada cambio del diff trazado a un criterio), las dos bloqueantes.
 
    Las verificaciones humanas y las declaraciones de que algo no tiene comportamiento observable nunca son bloqueantes.

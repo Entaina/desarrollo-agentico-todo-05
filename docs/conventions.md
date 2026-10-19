@@ -15,6 +15,7 @@ La aplicación es Buffalo sobre PostgreSQL, con Pop como ORM y plantillas Plush.
 | Esquema y datos | `migrations/` | Fizz para el esquema y SQL para los datos, cada migración con su `down` |
 | Recursos | `public/assets/` | CSS y JavaScript sin dependencias, como mejora progresiva sobre formularios que ya funcionan sin él |
 | Datos de test | `fixtures/` | Escenarios TOML que cargan los tests |
+| Tests de navegador | `e2e/`, `playwright.config.ts` | Recorridos en Chromium contra la aplicación arrancada con `GO_ENV=test`. Prueban lo que depende del navegador |
 | Arranque | `cmd/app/` | Migrar y servir |
 | Trigger | `adws/` | El lanzador del workflow `adw`. No es parte de la aplicación |
 
@@ -28,11 +29,12 @@ La aplicación es Buffalo sobre PostgreSQL, con Pop como ORM y plantillas Plush.
 - **Textos.** La interfaz está en español. El vocabulario es el de la lista: tarea, completar, reabrir, editar, eliminar.
 - **Comentarios.** Los identificadores exportados llevan un comentario en español que empieza por su nombre: `// TasksToggle alterna una tarea entre completada y pendiente.`.
 - **Tests.** `ActionSuite` (peticiones y render) y `ModelSuite` (reglas del modelo) sobre `github.com/gobuffalo/suite/v4`. Se nombran `Test_<Recurso><Acción>_<Caso>`. Preparan datos con `as.LoadFixture` o `ValidateAndCreate` y comprueban el código HTTP y el efecto en la base de datos. Ver `actions/tasks_test.go`.
-- **Formato y comprobaciones.** `gofmt`, `go vet ./...`, `go test -p 1 ./...` con la base de datos de test migrada, `go build ./...` y `docker build`, como en `.github/workflows/ci.yaml`.
+- **Tests de navegador.** Lo que depende del navegador, como el JavaScript de `public/assets/` o un recorrido que solo se ve en la página, se prueba con Playwright en `e2e/<grupo>/<caso>.spec.ts`: un test por fichero, que importa `test` y `expect` de `e2e/fixtures.ts`, prepara las tareas con la fixture `tasks`, usa localizadores por rol y nombre accesible (`getByRole`) y comprueba el efecto visible, y el persistido recargando la página. Ver `e2e/tareas/`.
+- **Formato y comprobaciones.** `gofmt`, `go vet ./...`, `go test -p 1 ./...` con la base de datos de test migrada, `go build ./...`, `npx playwright test` y `docker build`, como en `.github/workflows/ci.yaml`.
 
 ## Zonas fuera del alcance de un caso
 
-Un caso no toca estas rutas salvo que su issue lo pida expresamente: `.github/`, `.claude/`, `.devcontainer/`, `adws/`, `config/`, `go.mod` y `go.sum`, las migraciones ya existentes y los documentos de otros casos en `docs/changes/`. La fidelidad lo comprueba sobre `git diff --name-only` respecto a la base.
+Un caso no toca estas rutas salvo que su issue lo pida expresamente: `.github/`, `.claude/`, `.devcontainer/`, `adws/`, `config/`, `go.mod` y `go.sum`, `package.json`, `package-lock.json` y `playwright.config.ts`, las migraciones ya existentes y los documentos de otros casos en `docs/changes/`. La fidelidad lo comprueba sobre `git diff --name-only` respecto a la base.
 
 El documento de cierre del propio caso y su entrada en `docs/changes/README.md` no forman parte del cambio que se juzga: son su documentación, y la contención no los evalúa.
 
@@ -89,11 +91,11 @@ Material: el diff de `actions/`, `templates/` y `public/assets/`.
 
 ### E6 · Tests
 
-Material: el diff de los ficheros `_test.go` y `fixtures/`.
+Material: el diff de los ficheros `_test.go`, `fixtures/` y `e2e/`.
 
-- **Pasa:** cada comportamiento nuevo tiene test en la suite que le toca, con su caso negativo cuando lo hay, y comprueba el efecto, no solo el código HTTP.
+- **Pasa:** cada comportamiento nuevo tiene test en la suite que le toca, con su caso negativo cuando lo hay, y comprueba el efecto, no solo el código HTTP. Lo que depende del navegador tiene test en `e2e/`.
 - **`should-fix`:** un test que solo comprueba el código HTTP de algo que cambia datos.
-- **`blocker`:** un comportamiento nuevo sin test; un test existente desactivado, saltado o debilitado.
+- **`blocker`:** un comportamiento nuevo sin test; un cambio en el JavaScript de `public/assets/` probado solo con tests de Go, que no lo ejecutan; un test existente desactivado, saltado (`t.Skip`, `test.skip`, `test.fixme`) o debilitado.
 
 ### F1 · Mensajes y textos
 
@@ -118,7 +120,7 @@ El plan de implementación sirve para entender por qué existe un fragmento. No 
 
 Material: cada criterio, la afirmación que lo cubre y el test que se le asocia.
 
-- **Pasa:** el test ejercita el caso del criterio y comprueba su resultado esperado.
+- **Pasa:** el test, de Go o de navegador, ejercita el caso del criterio y comprueba su resultado esperado.
 - **`blocker`:** el test asociado prueba otra cosa o un caso más débil que el criterio; ningún test cubre el criterio.
 
 Solo se aplica a criterios con comportamiento observable. Uno sin él (documentación, una tarea sin efecto visible) no necesita test: basta con la declaración de su motivo.

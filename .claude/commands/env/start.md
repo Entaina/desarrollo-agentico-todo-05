@@ -25,7 +25,7 @@ Levanta la aplicación desde la raíz del repositorio. No mates procesos existen
    - Si falta alguno, explica el bloqueo y continúa mediante Docker completo.
 2. Ejecuta `docker compose up -d db`.
 3. Espera a que PostgreSQL figure como saludable en `docker compose ps`.
-4. Ejecuta `go mod download`.
+4. Ejecuta `go mod download`. Si falta `node_modules/`, ejecuta también `npm ci` y `npx playwright install chromium`: los necesitan los tests de navegador.
 5. Inicia `buffalo dev` en segundo plano desde la raíz y conserva su salida para poder diagnosticar el arranque.
 6. Espera hasta que `http://localhost:3000/healthz` responda correctamente.
 
