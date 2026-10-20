@@ -9,8 +9,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -89,6 +91,15 @@ func agentTurn(it issue, me string) bool {
 	return true
 }
 
+// say escribe una línea del resumen, con la hora y, si es de un caso, su número.
+func say(number string, format string, args ...any) {
+	fmt.Print(time.Now().Format("15:04:05"), " ")
+	if number != "" {
+		fmt.Printf("[#%s] ", number)
+	}
+	fmt.Printf(format+"\n", args...)
+}
+
 func run(args []string) error {
 	flags := flag.NewFlagSet("adw", flag.ContinueOnError)
 	path := flags.String("config", "config/adw.yml", "fichero YAML de configuración")
@@ -115,6 +126,11 @@ func run(args []string) error {
 		return fmt.Errorf("cuenta de gh: %w", err)
 	}
 	me := strings.TrimSpace(string(output))
+	top, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return fmt.Errorf("raíz del checkout: %w", err)
+	}
+	root := strings.TrimSpace(string(top))
 
 	for {
 		queryArgs := []string{"issue", "list"}
@@ -135,14 +151,28 @@ func run(args []string) error {
 				return fmt.Errorf("respuesta de la consulta de issues: %w", err)
 			}
 		}
-		for _, snapshot := range snapshots {
-			var it issue
-			if err := json.Unmarshal(snapshot, &it); err != nil {
+		issues := make([]issue, len(snapshots))
+		turn := 0
+		for i, snapshot := range snapshots {
+			if err := json.Unmarshal(snapshot, &issues[i]); err != nil {
 				return fmt.Errorf("issue de la consulta: %w", err)
 			}
+			if agentTurn(issues[i], me) {
+				turn++
+			}
+		}
+		// Cada consulta deja una línea en el resumen, aunque no encuentre nada: así se ve que el
+		// trigger sigue vivo.
+		next := ""
+		if !*once {
+			next = fmt.Sprintf(" · siguiente en %d s", cfg.IntervalSeconds)
+		}
+		say("", "consulta: %d issues abiertas con %q · %d por lanzar%s", len(issues), cfg.Label, turn, next)
+		for i, it := range issues {
 			if !agentTurn(it, me) {
 				continue
 			}
+			snapshot := snapshots[i]
 			status, err := exec.Command("git", "status", "--porcelain").Output()
 			if err != nil {
 				return fmt.Errorf("estado del checkout: %w", err)
@@ -155,16 +185,33 @@ func run(args []string) error {
 				return err
 			}
 			prompt := strings.ReplaceAll(cfg.Prompt, "{{payload}}", payload.String())
-			fmt.Printf("\nLanzando %s\n", it.URL)
 			agent := exec.Command("claude", "-p", prompt, "--permission-prompts", "none")
 			// Sin tope de espera a los subagentes en segundo plano: si el coordinador termina su turno
 			// mientras uno trabaja, claude -p corta la sesión a los 10 minutos y deja el caso a medias.
 			agent.Env = append(os.Environ(), "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0")
-			agent.Stdout, agent.Stderr = os.Stdout, os.Stderr
-			// Stdin queda cerrado: no hay conversación ni evaluación de shell.
-			if err := agent.Run(); err != nil {
+			// Lo que escribe la sesión va a su log, junto a los de los hooks: la salida del trigger es
+			// solo el resumen. Stdin queda cerrado: no hay conversación ni evaluación de shell.
+			number := it.URL[strings.LastIndex(it.URL, "/")+1:]
+			logs := filepath.Join(".adw", "logs", number)
+			if err := os.MkdirAll(filepath.Join(root, logs), 0o755); err != nil {
+				return err
+			}
+			logPath := filepath.Join(logs, "trigger-"+time.Now().Format("20060102-150405")+".txt")
+			logFile, err := os.Create(filepath.Join(root, logPath))
+			if err != nil {
+				return err
+			}
+			agent.Stdout, agent.Stderr = logFile, logFile
+			say(number, "lanzado · su salida, en %s", logPath)
+			started := time.Now()
+			err = agent.Run()
+			logFile.Close()
+			elapsed := time.Since(started).Round(time.Second)
+			if err != nil {
+				say(number, "la sesión falla tras %s: %v (ver %s)", elapsed, err, logPath)
 				return fmt.Errorf("Claude para %s: %w", it.URL, err)
 			}
+			say(number, "terminado en %s", elapsed)
 		}
 		if *once {
 			return nil

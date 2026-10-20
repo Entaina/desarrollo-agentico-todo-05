@@ -74,11 +74,15 @@ func TestTriggerHelperProcess(t *testing.T) {
 
 func runTrigger(t *testing.T, issues, configBody string, env []string, args ...string) (string, string, string, error) {
 	t.Helper()
+	return runTriggerIn(t, t.TempDir(), issues, configBody, env, args...)
+}
+
+func runTriggerIn(t *testing.T, root, issues, configBody string, env []string, args ...string) (string, string, string, error) {
+	t.Helper()
 	project, err := filepath.Abs("..")
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := t.TempDir()
 	write := func(name, body string) {
 		t.Helper()
 		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o700); err != nil {
@@ -108,12 +112,17 @@ if IFS= read -r unexpected; then exit 91; fi
 [[ "${CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS:-}" == 0 ]] || exit 92
 printf 'START:%s\n' "$2" >> "$TEST_ROOT/events"
 printf '%s' "$PWD" > "$TEST_ROOT/cwd"
+echo "hola desde la sesión"
 [[ "${TEST_CLAUDE_EXIT:-0}" == 0 ]] || exit "$TEST_CLAUDE_EXIT"
 /bin/sleep 0.02
 printf 'END:%s\n' "$2" >> "$TEST_ROOT/events"
 `)
 	write("git", `#!/usr/bin/env bash
 set -euo pipefail
+if [[ "$*" == "rev-parse --show-toplevel" ]]; then
+  printf '%s\n' "$TEST_ROOT"
+  exit 0
+fi
 [[ "$*" == "status --porcelain" ]] || exit 90
 [[ "${TEST_GIT_DIRTY:-0}" == 0 ]] || printf ' M main.go\n'
 `)
@@ -173,6 +182,29 @@ func TestTriggerOnceRunsIssuesInSequence(t *testing.T) {
 	want := "START:/adw " + newSnapshot + "\nEND:/adw " + newSnapshot + "\nSTART:/adw " + oldSnapshot + "\nEND:/adw " + oldSnapshot + "\n"
 	if events != want {
 		t.Fatalf("want sequential invocations %q, got %q", want, events)
+	}
+}
+
+func TestTriggerWritesSessionOutputToItsLog(t *testing.T) {
+	root := t.TempDir()
+	output, _, _, err := runTriggerIn(t, root, list(newSnapshot), "", nil, "--once")
+	if err != nil {
+		t.Fatalf("%v: %s", err, output)
+	}
+	for _, want := range []string{"[#12] lanzado · su salida, en .adw/logs/12/trigger-", "[#12] terminado en "} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("the summary must say when each case is launched and when it ends: want %q in %s", want, output)
+		}
+	}
+	if strings.Contains(output, "hola desde") {
+		t.Fatalf("the summary must not include what the session writes: %s", output)
+	}
+	logs, err := filepath.Glob(filepath.Join(root, ".adw", "logs", "12", "trigger-*.txt"))
+	if err != nil || len(logs) != 1 {
+		t.Fatalf("the session must write to its own log in .adw/logs/12/: %q, %v", logs, err)
+	}
+	if data, err := os.ReadFile(logs[0]); err != nil || !strings.Contains(string(data), "hola desde la sesión\n") {
+		t.Fatalf("the log must keep what the session writes: %q, %v", data, err)
 	}
 }
 
@@ -240,14 +272,14 @@ prompt: >-
   /mi-flujo {{payload}} --remote origin;
   $(exit 99) "{{payload}}"
 `
-	_, events, args, err := runTrigger(t, list(newSnapshot), body, []string{"ADW_PROMPT=este valor antiguo no se usa"})
+	output, events, args, err := runTrigger(t, list(newSnapshot), body, []string{"ADW_PROMPT=este valor antiguo no se usa"})
 	if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 73 {
 		t.Fatalf("unexpected exit: %v", err)
 	}
 	template := `/mi-flujo {{payload}} --remote origin; $(exit 99) "{{payload}}"`
 	prompt := strings.ReplaceAll(template, "{{payload}}", newSnapshot)
 	pass := "START:" + prompt + "\nEND:" + prompt + "\nSLEEP:7\n"
-	if events != pass+pass || !strings.Contains(args, "--label\nmi-etiqueta\n") {
+	if events != pass+pass || !strings.Contains(args, "--label\nmi-etiqueta\n") || strings.Count(output, "· siguiente en 7 s\n") != 2 {
 		t.Fatalf("YAML config must control the literal prompt, label and interval: %q, %q", events, args)
 	}
 }
@@ -267,6 +299,9 @@ func TestTriggerEmptyListDoesNotInvokeClaude(t *testing.T) {
 		output, events, _, err := runTrigger(t, issues, "", nil, "--once")
 		if err != nil || events != "" {
 			t.Fatalf("issues=%q: err=%v, events=%q, output=%s", issues, err, events, output)
+		}
+		if !strings.Contains(output, "consulta: 0 issues abiertas con \"adw\" · 0 por lanzar\n") {
+			t.Fatalf("every poll must leave a line in the summary, even when it finds nothing: %s", output)
 		}
 	}
 }

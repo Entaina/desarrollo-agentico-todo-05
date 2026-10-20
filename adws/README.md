@@ -93,6 +93,16 @@ bin/adw --once
 
 `bin/adw` se puede ejecutar desde cualquier directorio: sitúa la ejecución en la raíz de este checkout, y no prepara otro entorno. También puedes ejecutar `go run ./adws` directamente desde la raíz. Ambos admiten `--config ruta/al/config.yml` para elegir otro fichero. `--once` ejecuta Claude: no es una simulación.
 
+El trigger escribe un resumen, una línea con la hora por cada consulta, aunque no encuentre nada, y por cada caso lanzado, terminado o fallido:
+
+```text
+21:40:03 consulta: 3 issues abiertas con "adw" · 1 por lanzar · siguiente en 20 s
+21:40:04 [#24] lanzado · su salida, en .adw/logs/24/trigger-20261020-214004.txt
+22:05:10 [#24] terminado en 25m6s
+```
+
+Lo que escribe cada sesión de `claude -p` no sale en el resumen: va a su log, `.adw/logs/<N>/trigger-<fecha>-<hora>.txt`.
+
 Cada invocación equivale a `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 claude -p "<prompt configurado con la foto de la issue>" --permission-prompts none`. La variable quita el tope de espera a los subagentes en segundo plano: sin ella, si el coordinador termina su turno mientras un subagente sigue trabajando, `claude -p` corta la sesión a los 10 minutos y el caso se queda a medias. El flag elimina herramientas que necesitan respuesta humana, como `AskUserQuestion`, y deniega solicitudes no autorizadas en vez de esperar; **no amplía permisos ni los desactiva**. Requiere Claude Code v2.1.259+. Confirma que el modo del cliente carga las skills/comandos del proyecto; no uses uno que los oculte.
 
 La skill continúa automáticamente hasta abrir el PR, con el cambio validado y documentado. Si la issue no está clara, deja sus preguntas en ella (`issue:info-requested`) y te cede el turno. Cuando respondes y quitas `adw:waiting-for-human`, la siguiente consulta lanza la skill y retoma el trabajo. Con el PR publicado ocurre lo mismo con tus comentarios de revisión: el agente amplía el plan de verificación con lo que pides, revalida y actualiza el documento antes de volver a publicar. Los errores y el tope de rechazos se reportan en la issue y dejan la etiqueta `<artifact>:failed`; quitar `adw:waiting-for-human` es reintentar. Detén el sondeo con `Ctrl+C`; si `gh`, `git` o `claude` devuelven error, el lanzador termina.
@@ -104,6 +114,8 @@ Cada invocación de `/adw` deja un log en `.adw/logs/<issue>/<iteración>_<sesi�
 ```bash
 tail -f .adw/logs/12/*.jsonl
 ```
+
+Al lado, el trigger deja `trigger-<fecha>-<hora>.txt` con lo que escribió la sesión de `claude -p`: su respuesta final y sus errores.
 
 La sesión escribe en `.adw/logs/unknown-<n>/` hasta que la skill sabe a qué issue afecta y la asocia con `.claude/skills/adw/scripts/log.sh case`. Si el evento no afecta a ningún caso, el log se queda ahí. Lo escriben los hooks de `.claude/settings.json`, que no registran nada en las sesiones que no invocan `adw`. `.adw/` está en `.gitignore`, así que los logs no ensucian el checkout.
 
@@ -126,4 +138,4 @@ La sesión escribe en `.adw/logs/unknown-<n>/` hasta que la skill sabe a qué is
 go test -p 1 ./adws
 ```
 
-Los tests usan `gh`, `git` y `claude` simulados: no consultan GitHub ni ejecutan un agente real. Comprueban la configuración YAML, `max_rejections` (3 por defecto, valores válidos e inválidos), repo opcional o explícito, paradas ante errores de `gh`, la consulta, el filtro por turno del agente, la parada con el checkout sucio, el orden secuencial, el flag sin prompts de permiso, la espera sin tope a los subagentes, la sustitución literal del prompt, las paradas por error y el sondeo sin memoria. No sustituyen un ensayo completo del workflow hasta el PR.
+Los tests usan `gh`, `git` y `claude` simulados: no consultan GitHub ni ejecutan un agente real. Comprueban la configuración YAML, `max_rejections` (3 por defecto, valores válidos e inválidos), repo opcional o explícito, paradas ante errores de `gh`, la consulta, el filtro por turno del agente, la parada con el checkout sucio, el orden secuencial, la línea de cada consulta aunque no encuentre nada, que lo que escribe la sesión va a su log y no al resumen, el flag sin prompts de permiso, la espera sin tope a los subagentes, la sustitución literal del prompt, las paradas por error y el sondeo sin memoria. No sustituyen un ensayo completo del workflow hasta el PR.
