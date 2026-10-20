@@ -23,7 +23,8 @@ Si no hay nada en marcha, informa de ello y termina.
 
 1. Localiza los procesos `buffalo dev` con `pgrep -f "buffalo dev"`. Para cada uno, comprueba con `lsof -a -p <pid> -d cwd` que su directorio de trabajo es la raíz de este repositorio. Si pertenece a otro proyecto, no lo toques.
 2. Detén los de este repositorio con `kill <pid>`.
-3. Ejecuta `docker compose stop db`.
+3. Si algo de este repositorio sigue escuchando en el puerto `3000` (`lsof -nP -iTCP:3000 -sTCP:LISTEN`, con su directorio de trabajo en la raíz), como la aplicación que compila `buffalo dev` (`tmp/todo-build`), detenlo también con `kill <pid>`.
+4. Ejecuta `docker compose stop db`.
 
 ## Comprobación
 

@@ -9,7 +9,7 @@ Necesitas Go (la versión del proyecto), Bash, Git, GitHub CLI (`gh`) 2.99 o pos
 La verificación necesita además:
 
 - Node.js 20 o posterior y [`playwright-cli`](https://playwright.dev/agent-cli/introduction) con su navegador: `npm install -g @playwright/cli@latest` y `playwright-cli install-browser chromium`. El navegador no se descarga solo en el primer uso. La configuración del proyecto está en `.playwright/cli.config.json` (Chromium sin ventana y viewport fijo de 1280x800) y la skill de la CLI, en `.claude/skills/playwright-cli/`; si actualizas la CLI, vuelve a instalar la skill con `playwright-cli install --skills`.
-- Las dependencias de los tests de navegador, en el checkout: `npm ci` y `npx playwright install chromium`. Los tests están en `e2e/` y `playwright.config.ts` arranca la aplicación para ellos con `GO_ENV=test` en el puerto 3001, que tiene que estar libre.
+- Las dependencias de los tests de navegador, en el checkout: `npm ci` y `npx playwright install chromium`, que instala `bin/setup` (lo ejecuta `env:start`). Los tests están en `e2e/` y `playwright.config.ts` arranca la aplicación para ellos con `GO_ENV=test` en el puerto 3001, que tiene que estar libre.
 - `soda` para las migraciones de test (`go install github.com/gobuffalo/pop/v6/soda@v6.4.1`), en `PATH` o en `$(go env GOPATH)/bin`.
 - PostgreSQL en el puerto 5432, el del entorno de desarrollo (`env:start`), y Docker.
 

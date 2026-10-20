@@ -1,5 +1,7 @@
 /bin/*
 !/bin/adw
+!/bin/dev
+!/bin/setup
 tmp/
 *.log
 .env

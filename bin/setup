@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Deja el repositorio listo para arrancar la aplicación y ejecutar los tests. Se puede repetir: solo
+# hace lo que falta.
+#
+#   bin/setup
+#
+#   1. Comprueba que hay Docker, Go y Node.
+#   2. Instala las dependencias: los módulos de Go, soda y buffalo con sus versiones fijadas (si
+#      faltan), las de Node (npm ci, si cambian) y el Chromium de Playwright.
+#   3. Levanta PostgreSQL y crea y migra la base de test. La de desarrollo la migra la aplicación
+#      al arrancar.
+#
+# No arranca la aplicación: eso es bin/dev.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+step() { printf '\n== %s\n' "$*"; }
+fail() {
+  echo "bin/setup: $*" >&2
+  exit 1
+}
+
+step "Herramientas"
+if ! command -v docker > /dev/null || ! docker info > /dev/null 2>&1; then
+  fail "Docker no está instalado o no responde"
+fi
+command -v go > /dev/null || fail "falta Go, en la versión de go.mod"
+command -v npm > /dev/null || fail "falta Node.js LTS, con npm"
+echo "Docker, Go y Node: sí"
+
+step "Dependencias"
+gobin=$(go env GOPATH)/bin
+# tool <nombre> <paquete@versión>: lo instala si no está en el PATH ni en $(go env GOPATH)/bin.
+tool() {
+  if command -v "$1" > /dev/null || [[ -x $gobin/$1 ]]; then
+    echo "$1: ya está"
+  else
+    echo "$1: instalando $2"
+    go install "$2"
+  fi
+}
+go mod download
+tool soda github.com/gobuffalo/pop/v6/soda@v6.4.1
+tool buffalo github.com/gobuffalo/cli/cmd/buffalo@v0.18.14
+if [[ ! -f node_modules/.package-lock.json || package-lock.json -nt node_modules/.package-lock.json ]]; then
+  npm ci
+else
+  echo "node_modules: al día"
+fi
+npx playwright install chromium
+
+step "PostgreSQL en el puerto 5432"
+docker compose up -d --wait db ||
+  fail "PostgreSQL no arranca. Si otro proyecto ocupa el puerto 5432, páralo"
+soda=$(command -v soda || echo "$gobin/soda")
+created=$("$soda" create -e test 2>&1) || [[ $created == *"already exists"* ]] || {
+  echo "$created" >&2
+  fail "no se puede crear la base de test"
+}
+"$soda" migrate -e test
+
+step "Listo"
+echo "Arranca la aplicación con bin/dev."

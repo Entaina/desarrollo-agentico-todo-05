@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Arranca en primer plano la aplicación del repositorio, en http://localhost:3000. Antes, bin/setup.
+#
+#   bin/dev [--docker]
+#
+# Modo host por defecto: PostgreSQL en su contenedor y buffalo dev, que recompila al cambiar el
+# código. Con --docker, o si no hay buffalo, la aplicación también en su contenedor.
+# Ctrl+C para la aplicación; PostgreSQL sigue en marcha, y lo para docker compose stop.
+#
+# Si otro proceso ocupa el puerto de la aplicación o el de PostgreSQL, lo dice y para.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+app_port=3000
+db_port=5432
+
+fail() {
+  echo "bin/dev: $*" >&2
+  exit 1
+}
+
+mode=host
+case $# in
+  0) ;;
+  1) [[ $1 == --docker ]] || { echo "uso: bin/dev [--docker]" >&2; exit 2; }; mode=docker ;;
+  *) echo "uso: bin/dev [--docker]" >&2; exit 2 ;;
+esac
+
+buffalo=$(command -v buffalo || true)
+if [[ -z $buffalo && -x "$(go env GOPATH 2> /dev/null)/bin/buffalo" ]]; then
+  buffalo="$(go env GOPATH)/bin/buffalo"
+fi
+if [[ $mode == host && -z $buffalo ]]; then
+  echo "bin/dev: no está buffalo (lo instala bin/setup); arranco en modo Docker completo."
+  mode=docker
+fi
+
+# busy <puerto> <servicio>: el puerto escucha, pero no es del servicio de este proyecto.
+busy() {
+  lsof -nP -iTCP:"$1" -sTCP:LISTEN > /dev/null 2>&1 || return 1
+  ! docker compose ps --status running --services 2> /dev/null | grep -qx "$2"
+}
+busy "$db_port" db &&
+  fail "el puerto $db_port de PostgreSQL lo ocupa otro proceso (lsof -nP -iTCP:$db_port -sTCP:LISTEN). Páralo antes."
+busy "$app_port" app &&
+  fail "el puerto $app_port de la aplicación lo ocupa otro proceso (lsof -nP -iTCP:$app_port -sTCP:LISTEN). Si es otro bin/dev de este proyecto, ya está en marcha."
+
+docker compose up -d --wait db
+echo "bin/dev: modo $mode. La aplicación, en http://localhost:$app_port. Ctrl+C la para; PostgreSQL sigue en marcha."
+if [[ $mode == docker ]]; then
+  exec docker compose up --build --no-deps app
+fi
+# buffalo dev arranca la aplicación compilada como proceso hijo y no la para cuando recibe una
+# señal. Va en su propio grupo de procesos, y al salir, por Ctrl+C o porque alguien para
+# buffalo dev, se para el grupo entero.
+set -m
+PORT=$app_port "$buffalo" dev &
+group=$!
+trap 'kill -TERM -- "-$group" 2> /dev/null' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+wait "$group"

@@ -5,30 +5,36 @@ Cómo se arranca la aplicación, cómo se prueba y qué comprueba la CI.
 ## Requisitos
 
 - Docker, para PostgreSQL y, si se quiere, para la aplicación.
-- Para trabajar en el host: Go 1.26, la CLI de Buffalo (`go install github.com/gobuffalo/cli/cmd/buffalo@v0.18.14`) y `soda` (`go install github.com/gobuffalo/pop/v6/soda@v6.4.1`).
-- Para los tests de navegador: Node.js LTS, `npm ci` y `npx playwright install chromium`.
+- Go 1.26 y Node.js LTS.
 
-El devcontainer (`.devcontainer/devcontainer.json`) lo instala todo y arranca la base de datos.
+Lo demás lo instala `bin/setup`: la CLI de Buffalo (`buffalo@v0.18.14`) y `soda` (`soda@v6.4.1`), con `go install` si faltan, las dependencias de Node (`npm ci`) y el Chromium de los tests de navegador. El devcontainer (`.devcontainer/devcontainer.json`) lo instala todo con su propia lista de comandos y arranca la base de datos.
 
-## Arrancar y parar
+## Preparar, arrancar y parar
 
-`/env:start` arranca el entorno y comprueba que responde; `/env:stop` lo para sin borrar datos. A mano:
+```bash
+bin/setup        # deja el repositorio listo: dependencias, PostgreSQL y la base de test migrada
+bin/dev          # arranca la aplicación en primer plano; Ctrl+C la para
+```
+
+`bin/setup` se puede repetir: solo hace lo que falta. `bin/dev` levanta PostgreSQL si no está y arranca la aplicación en uno de los dos modos:
 
 | Modo | Arrancar | Parar |
 | --- | --- | --- |
-| Host (por defecto) | `docker compose up -d db` y `buffalo dev`, que recompila al cambiar el código Go | Parar `buffalo dev` y `docker compose stop db` |
-| Docker completo | `docker compose up --build -d` | `docker compose stop` |
+| Host (por defecto) | `bin/dev`: PostgreSQL en su contenedor y `buffalo dev`, que recompila al cambiar el código Go | Ctrl+C para la aplicación; `docker compose stop db`, PostgreSQL |
+| Docker completo | `bin/dev --docker`, o `bin/dev` si no está `buffalo`: la aplicación también en su contenedor | Ctrl+C para la aplicación; `docker compose stop`, todo |
 
-La aplicación queda en http://localhost:3000, y `/healthz` dice si responde. Usa los puertos 3000 y 5432: si los ocupa otro proyecto, hay que pararlo antes.
+`/env:start` hace lo mismo para el agente (`bin/setup` y `bin/dev` en segundo plano) y comprueba que responde; `/env:stop` lo para sin borrar datos.
+
+La aplicación queda en http://localhost:3000, y `/healthz` dice si responde. Usa los puertos 3000 y 5432: si los ocupa otro proyecto, `bin/dev` lo dice y para, y hay que pararlo antes.
 
 ## Bases de datos
 
 | Base | Para qué | Cómo se crea |
 | --- | --- | --- |
 | `todo_development` | La aplicación en desarrollo | La crea `compose.yaml` |
-| `todo_test` | Los tests de Go y de navegador | `soda create -e test` |
+| `todo_test` | Los tests de Go y de navegador | `bin/setup`, que la crea y la migra (`soda create -e test` y `soda migrate -e test`) |
 
-Al arrancar, la aplicación aplica las migraciones pendientes de su entorno. Los tests de Go necesitan la base de test migrada antes: `soda migrate -e test`.
+Al arrancar, la aplicación aplica las migraciones pendientes de su entorno. Los tests de Go necesitan la base de test migrada antes: `bin/setup` o `soda migrate -e test`.
 
 ## Tests de Go
 

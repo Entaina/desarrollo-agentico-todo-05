@@ -5,42 +5,24 @@ allowed-tools: Bash, Read
 
 # Arranca el entorno de desarrollo
 
-Levanta la aplicación desde la raíz del repositorio. No mates procesos existentes ni elimines volúmenes.
+Levanta la aplicación del repositorio con los scripts del proyecto, `bin/setup` y `bin/dev`, y comprueba que responde. No mates procesos existentes ni elimines volúmenes.
 
-## Modos
+La aplicación usa el puerto `3000` y PostgreSQL, el `5432`.
 
-- Usa el modo **host** por defecto.
-- Usa el modo **Docker completo** si `$ARGUMENTS` contiene `--docker` o si Go/Buffalo no están disponibles en el host.
+## Pasos
 
-## Comprobaciones previas
-
-1. Confirma que `docker compose` está disponible y que el daemon responde.
-2. Comprueba si los puertos `3000` o `5432` ya están ocupados.
-   - Si pertenecen a este proyecto y el servicio responde, reutilízalos.
-   - Si pertenecen a otro proceso, informa del conflicto y detente. No lo finalices.
-
-## Modo host
-
-1. Comprueba que `go` y `buffalo` están disponibles.
-   - Si falta alguno, explica el bloqueo y continúa mediante Docker completo.
-2. Ejecuta `docker compose up -d db`.
-3. Espera a que PostgreSQL figure como saludable en `docker compose ps`.
-4. Ejecuta `go mod download`. Si falta `node_modules/`, ejecuta también `npm ci` y `npx playwright install chromium`: los necesitan los tests de navegador.
-5. Inicia `buffalo dev` en segundo plano desde la raíz y conserva su salida para poder diagnosticar el arranque.
-6. Espera hasta que `http://localhost:3000/healthz` responda correctamente.
-
-## Modo Docker completo
-
-1. Ejecuta `docker compose up --build -d`.
-2. Espera a que `db` y `app` figuren como saludables en `docker compose ps`.
-3. Comprueba `http://localhost:3000/healthz`.
+1. Si `http://localhost:3000/healthz` ya responde y `docker compose ps` muestra en marcha los servicios de este proyecto, el entorno ya está arrancado: informa y termina.
+2. Ejecuta `bin/setup`. Comprueba las herramientas, instala lo que falta y deja PostgreSQL en marcha con la base de test migrada. Si falla, informa de lo que dice y detente: es un fallo del entorno.
+3. Lanza `bin/dev` en segundo plano, con la herramienta Bash en segundo plano, y conserva su salida para poder diagnosticar el arranque. Usa `bin/dev --docker` si `$ARGUMENTS` contiene `--docker`. Sin buffalo, `bin/dev` pasa solo a Docker completo y lo dice.
+4. Si `bin/dev` termina enseguida con un error, informa de lo que dice y detente. Si el error es que otro proceso ocupa un puerto, no lo finalices.
+5. Espera hasta que `http://localhost:3000/healthz` responda correctamente. En modo Docker completo, la primera vez se construye la imagen y tarda más.
 
 ## Resultado
 
 Informa de:
 
-- modo utilizado;
+- modo utilizado, el que dice `bin/dev`;
 - servicios iniciados;
 - URL de la aplicación;
 - respuesta de `/healthz`;
-- cualquier fallback, advertencia o proceso que deba mantenerse activo.
+- cualquier fallback, advertencia o proceso que deba mantenerse activo: `bin/dev` sigue en segundo plano.
