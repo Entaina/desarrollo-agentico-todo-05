@@ -82,16 +82,16 @@ El bloque `>-` permite escribir un prompt largo en varias líneas: YAML las une 
 Desde la raíz del repositorio:
 
 ```bash
-bash adws/trigger-github.sh
+bin/adw
 ```
 
 Para consultar y procesar la lista una sola vez:
 
 ```bash
-bash adws/trigger-github.sh --once
+bin/adw --once
 ```
 
-También puedes ejecutar `go run ./adws` directamente. El script sitúa la ejecución en este checkout; no prepara otro entorno. Ambos admiten `--config ruta/al/config.yml` para elegir otro fichero. `--once` ejecuta Claude: no es una simulación.
+`bin/adw` se puede ejecutar desde cualquier directorio: sitúa la ejecución en la raíz de este checkout, y no prepara otro entorno. También puedes ejecutar `go run ./adws` directamente desde la raíz. Ambos admiten `--config ruta/al/config.yml` para elegir otro fichero. `--once` ejecuta Claude: no es una simulación.
 
 Cada invocación equivale a `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 claude -p "<prompt configurado con la foto de la issue>" --permission-prompts none`. La variable quita el tope de espera a los subagentes en segundo plano: sin ella, si el coordinador termina su turno mientras un subagente sigue trabajando, `claude -p` corta la sesión a los 10 minutos y el caso se queda a medias. El flag elimina herramientas que necesitan respuesta humana, como `AskUserQuestion`, y deniega solicitudes no autorizadas en vez de esperar; **no amplía permisos ni los desactiva**. Requiere Claude Code v2.1.259+. Confirma que el modo del cliente carga las skills/comandos del proyecto; no uses uno que los oculte.
 

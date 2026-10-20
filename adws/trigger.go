@@ -90,7 +90,7 @@ func agentTurn(it issue, me string) bool {
 }
 
 func run(args []string) error {
-	flags := flag.NewFlagSet("trigger-github", flag.ContinueOnError)
+	flags := flag.NewFlagSet("adw", flag.ContinueOnError)
 	path := flags.String("config", "config/adw.yml", "fichero YAML de configuración")
 	once := flags.Bool("once", false, "procesa una sola consulta y termina")
 	if err := flags.Parse(args); err != nil {

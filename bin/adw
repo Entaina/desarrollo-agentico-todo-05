@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Trigger de adw: consulta las issues y lanza la skill en las que tienen el turno del agente.
+#
+#   bin/adw [--once] [--config <fichero>]
+#
+# Se puede ejecutar desde cualquier directorio: sitúa la ejecución en la raíz del repositorio.
+# Cómo se configura y qué hace, en adws/README.md.
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+exec go run ./adws "$@"

@@ -130,8 +130,8 @@ touch "$TEST_ROOT/slept"
 	cmd.Dir = project
 	for _, value := range env {
 		if value == "TEST_USE_WRAPPER=1" {
-			wrapperArgs := []string{filepath.Join(project, "adws/trigger-github.sh"), "--config", filepath.Join(root, "adw.yml")}
-			cmd = exec.CommandContext(ctx, "bash", append(wrapperArgs, args...)...)
+			wrapperArgs := []string{"--config", filepath.Join(root, "adw.yml")}
+			cmd = exec.CommandContext(ctx, filepath.Join(project, "bin", "adw"), append(wrapperArgs, args...)...)
 			cmd.Dir = root
 		}
 	}
@@ -228,7 +228,7 @@ func TestTriggerShellWrapper(t *testing.T) {
 	output, events, _, err := runTrigger(t, list(newSnapshot), "", []string{"TEST_USE_WRAPPER=1", "GOFLAGS=-mod=readonly"}, "--once")
 	want := "START:/adw " + newSnapshot + "\nEND:/adw " + newSnapshot + "\n"
 	if err != nil || events != want {
-		t.Fatalf("wrapper must load YAML and launch the configured prompt: err=%v, events=%q, output=%s", err, events, output)
+		t.Fatalf("bin/adw must run directly, load YAML and launch the configured prompt: err=%v, events=%q, output=%s", err, events, output)
 	}
 }
 

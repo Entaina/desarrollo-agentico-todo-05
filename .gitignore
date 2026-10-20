@@ -1,4 +1,5 @@
-bin/
+/bin/*
+!/bin/adw
 tmp/
 *.log
 .env
